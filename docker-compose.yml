@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: writeback
+      POSTGRES_PASSWORD: writeback
+      POSTGRES_DB: writeback
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      # -h localhost forces TCP so the check fails while the init-only (socket) server is running.
+      test: ['CMD-SHELL', 'pg_isready -U writeback -d writeback -h localhost']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6380:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:

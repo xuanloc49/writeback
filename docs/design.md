@@ -2,13 +2,14 @@
 
 **Dự án:** Learning English / WriteBack (tên tạm)  
 **Loại tài liệu:** Technical Design (implementation-ready)  
-**Phiên bản:** 1.2  
+**Phiên bản:** 1.3  
 **Ngày:** 2026-09-13  
-**Trạng thái:** chốt theo PRD v1.4 (vận hành enterprise)  
+**Trạng thái:** chốt theo PRD v1.4.1 (vận hành enterprise)  
 **Nguồn hành vi:** [`docs/PRD.md`](./PRD.md)  
 **Xung đột:** hành vi sản phẩm lấy PRD làm chuẩn; tài liệu này chỉ chốt *cách làm*. Nếu lệch PRD, sửa design hoặc cập nhật PRD trước khi code.  
 **Changelog v1.1:** picker ranking; cloze inflection; unhide; sample/example; snapshot; onboarding; due GMT+7; lemma Free; unique email.  
-**Changelog v1.2:** Redis rate-limit; Fly ≥ 2; staging; PITR; RBAC 4 role; audit_logs; impersonate; quota_grants; allowlist bảng; OpenAPI bắt buộc; eval+adversarial CI. D8 đổi (Redis). D10 = charged rows + grants.
+**Changelog v1.2:** Redis rate-limit; Fly ≥ 2; staging; PITR; RBAC 4 role; audit_logs; impersonate; quota_grants; allowlist bảng; OpenAPI bắt buộc; eval+adversarial CI. D8 đổi (Redis). D10 = charged rows + grants.  
+**Changelog v1.3:** `plan_limits` theo `LimitProfile` `free | premium | staff` (một nguồn sự thật, seed lúc migrate); bỏ hằng số staff trong code + env `ADMIN_REWRITE_NEW`. `/ready` trả `{ db, redis }`.
 
 ---
 
@@ -49,6 +50,7 @@ Engineer đọc file này là implement MVP được: stack, repo, schema, endpo
 | D10 | Nguồn quota | Đếm `rewrite_attempts.quota_charged` + `quota_grants` | Grant không sửa history |
 | D11 | HA | Fly API **min 2** máy | Autoscaling off; min=2 |
 | D12 | Môi trường | local / staging / prod | Neon branch staging; OAuth client riêng |
+| D13 | Hạn mức | Bảng `plan_limits` theo `LimitProfile` (`free`\|`premium`\|`staff`) | Không hằng số/env cho staff; đọc DB qua `PlanLimitsService` |
 
 ---
 
@@ -319,7 +321,7 @@ Allowlist: bảng `beta_allowlist_emails` (UI admin). Env `BETA_ALLOWLIST_EMAILS
 }
 ```
 
-Admin trên `/app`: `limits` hàng Staff (100 / 10 / 40 / `null` không trần card). Impersonate: `limits` + catalog của **user đích**.
+Admin trên `/app`: `limits` = hàng `staff` của `plan_limits` (100 / 10 / 40 / `null` không trần card). Impersonate: `limits` + catalog của **user đích**.
 
 ---
 
@@ -336,7 +338,8 @@ Prisma trong `apps/api/prisma/schema.prisma` (copy phụ lục A). Unique headwo
 `AttemptStatus`: `started` \| `scoring` \| `scored` \| `failed`  
 `IdeaMatchStatus`: `enough` \| `missing` \| `off_topic`  
 `SrsStatus`: `new` \| `learning` \| `review` \| `mastered`  
-`ReviewMode`: `flashcard` \| `type` \| `cloze`
+`ReviewMode`: `flashcard` \| `type` \| `cloze`  
+`LimitProfile`: `free` \| `premium` \| `staff`
 
 `content_gone` (topic/lemma unpublish/xóa) **không** lưu cột — tính lúc đọc bằng join. User gỡ bộ ôn: `srs_cards.hidden_at`.
 
@@ -407,12 +410,13 @@ Visible ôn / due / trang chi tiết: `hidden_at IS NULL` **và** lemma+topic pu
 
 ### 7.5 `plan_limits` (seed)
 
-| plan | rewrite_new | retry | session_cap | new_cards_used_natural |
+| profile | rewrite_new | retry | session_cap | new_cards_used_natural |
 | --- | --- | --- | --- | --- |
 | free | 10 | 3 | 20 | 20 |
 | premium | 50 | 10 | 40 | NULL (không trần) |
+| staff | 100 | 10 | 40 | NULL (không trần) |
 
-Staff trên `/app` (`role` editor/support/admin) **không** đọc hàng plan: 100 / 10 / 40 / NULL. Hằng số trong code + env override `ADMIN_REWRITE_NEW=100` …
+Profile = `limitProfileFor(role, plan)`: role staff (`editor`/`support`/`admin`) → `staff`, còn lại → `plan`. **Không** hằng số trong code, **không** env override; đổi hạn mức = sửa hàng (UI admin = backlog P1).
 
 ### 7.6 Index SQL (migration)
 
@@ -640,7 +644,7 @@ Auth: cookie session. Trừ `GET /health`, `/ready`, `/auth/*`.
 | Method | Path | Auth | Thành công | Lỗi |
 | --- | --- | --- | --- | --- |
 | GET | `/health` | không | `{ status: "ok" }` | |
-| GET | `/ready` | không | `{ db: true }` | 503 |
+| GET | `/ready` | không | `{ db: true, redis: true }` | 503 |
 | * | `/auth/*` | Auth.js | redirect / session | |
 | GET | `/me` | session | mục 6.2 | 401 |
 | POST | `/me/tos` | session | `{ tosAcceptedAt }` | 401, VALIDATION |
@@ -876,7 +880,6 @@ SCORING_PROMPT_VERSION=score.v1
 RATE_LIMIT_SUBMIT_PER_MIN
 RATE_LIMIT_START_PER_MIN
 SENTRY_DSN
-ADMIN_REWRITE_NEW=100
 ```
 
 **Web**
@@ -970,7 +973,7 @@ Lớp học / thi / SSO trường = bảng mới, không nhồi vào `rewrite_at
 Design đủ để thỏa 15 mục DoD PRD §18 nếu implement đúng file này. Cụ thể:
 
 - Allowlist + onboarding 1–3 + catalog đúng plan (lemma Free) + `attempt_id` + schema `idea_match` + 1-1 words  
-- Trần 10/50/100; start hết quota 429 không mint; draft không lộ  
+- Trần 10/50/100 từ `plan_limits` (profile free/premium/staff); start hết quota 429 không mint; draft không lộ  
 - Import draft; publish tay; API chặn prompt thiếu sample / lemma thiếu example  
 - Plan + allow topic hiệu lực ngay; quota `max(0, limit − charged + grants)` + `FOR UPDATE` hàng user  
 - Auto-add only; unhide từ list đã gỡ; chấm không tự unhide  
@@ -1008,6 +1011,7 @@ enum AttemptStatus { started scoring scored failed }
 enum IdeaMatchStatus { enough missing off_topic }
 enum SrsStatus { new learning review mastered }
 enum ReviewMode { flashcard type cloze }
+enum LimitProfile { free premium staff }
 
 model User {
   id                    String    @id @default(uuid()) @db.Uuid
@@ -1195,7 +1199,7 @@ model UserTopicOverride {
 }
 
 model PlanLimit {
-  plan                      Plan @id
+  profile                   LimitProfile @id
   rewriteNewPerDay         Int  @map("rewrite_new_per_day")
   retryPerDay               Int  @map("retry_per_day")
   reviewSessionCap          Int  @map("review_session_cap")
@@ -1408,7 +1412,7 @@ model ImpersonationSession {
 }
 ```
 
-Rate-limit SoT = Redis, không bảng PG. Seed `plan_limits` lúc migrate. Constraint `char_length` và unique từng phần: SQL mục 7.6.
+Rate-limit SoT = Redis, không bảng PG. Seed `plan_limits` (free/premium/staff) lúc migrate. Constraint `char_length` và unique từng phần: SQL mục 7.6.
 
 ---
 
@@ -1441,5 +1445,5 @@ Rate-limit SoT = Redis, không bảng PG. Seed `plan_limits` lúc migrate. Const
 
 ---
 
-*Hết design v1.2. Đổi D1–D12 hoặc PRD v1.4+ phải bump phiên bản file này.*
+*Hết design v1.3. Đổi D1–D12 hoặc PRD v1.4+ phải bump phiên bản file này.*
 

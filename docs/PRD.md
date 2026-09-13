@@ -2,13 +2,14 @@
 
 **Dự án:** Learning English  
 **Loại tài liệu:** Product Requirements Document  
-**Phiên bản:** 1.4  
+**Phiên bản:** 1.4.1  
 **Ngày:** 2026-09-13  
 **Trạng thái:** v1.4 nâng vận hành enterprise (vòng học giữ v1.3; không mở lớp/thanh toán/thi)  
 **Changelog v1.1:** keo viết↔SRS (auto-add + picker); 1 revision/attempt; cloze; `idea_match`; chi tiết từ; ≥ 2 prompt/lemma; điểm 0–100 xuống phụ.  
 **Changelog v1.2:** chốt contradiction + P0 pressure-test (không mở non-goals). Metric đo được; `sample_en` pedagogic sau khi có card; picker hard-filter due; không add tay; override chỉ topic; admin `/app` = catalog published + quota Admin; trừ quota khi JSON đúng schema; mint `attempt_id` lúc start; trần 20 = từ used+natural; ≥2 prompt = blocker UI + gate beta; allowlist closed beta; WR-xx + AC còn thiếu. Chi tiết mục 12.  
 **Changelog v1.3:** bỏ hard-filter due (due = +3 ranking); CTA lemma lọc lemma trước; cloze/gõ word-boundary + inflection + bất quy tắc; unhide + list đã gỡ; tách `prompt.sample_en` (chấm/copy-block, snapshot) và `lemma.example_en` (ôn); cổng onboarding + start hết quota 429 không mint; due theo ngày GMT+7, q=1 new/learning = +10 phút; chỉ `lemma.included_in_free`, bỏ `thin_content_ok` và cờ Free trên topic/prompt. Unique headword toàn hệ thống + quy tắc seed từ chuyên biệt topic. Stack tách Vercel/Fly giữ.  
 **Changelog v1.4:** vận hành enterprise quanh cùng sản phẩm B2C. RBAC `user|editor|support|admin`; audit mọi hành động đặc quyền (kể cả xem PII, publish); impersonate + restore quota có lý do/TTL; allowlist UI; re-accept ToS theo version; checkbox 15+ trên ToS. NFR: SLO, staging, HA ≥2 máy API, Redis rate-limit, PITR, eval LLM trên CI, OpenAPI bắt buộc. **Không** mở lớp/gia sư, thanh toán, đề thi, SSO trường.  
+**Changelog v1.4.1:** hạn mức fair-use lưu **bảng `plan_limits`** theo profile `free | premium | staff` (một nguồn sự thật, seed lúc migrate); bỏ hằng số staff trong code và env `ADMIN_REWRITE_NEW`. Không đổi con số hay hành vi.  
 **Ngôn ngữ sản phẩm (UI):** Tiếng Việt  
 **Nền tảng MVP:** Web (responsive desktop + mobile)
 
@@ -215,7 +216,7 @@ Với staff trên `/app`: `plan_allows` = mọi published.
 
 ## 8. Hạn mức mặc định (fair-use)
 
-Các số là **default v1**, lưu config (env hoặc bảng `plan_limits`). Admin **không** cần UI sửa hạn mức trong MVP.
+Các số là **default v1**, lưu **bảng `plan_limits`** theo profile `free | premium | staff` (seed lúc migrate; profile = role staff → `staff`, còn lại → plan). **Không** hằng số trong code, **không** env override. Admin **không** cần UI sửa hạn mức trong MVP.
 
 | Hạng mục | Free | Premium | Staff trên `/app` (editor/support/admin) |
 | --- | --- | --- | --- |
@@ -804,7 +805,7 @@ Không gửi nội dung câu user lên analytics bên thứ ba (chỉ độ dài
 
 Stack triển khai **chốt trong design** (không còn “gợi ý”): Next + Nest tách, Neon, Fly ≥ 2 máy, Upstash Redis (rate-limit), Vercel web, OpenAI, Sentry.
 
-**Bảng dữ liệu lõi (logic):** `users` (email unique, `role`, xóa cứng), `topics`, `lemmas`, `prompts`, `prompt_lemmas`, `user_topic_overrides`, `srs_cards`, `srs_reviews`, `rewrite_attempts`, `plan_changes`, `tos_acceptances`, `beta_allowlist_emails`, `quota_grants`, `audit_logs`, `impersonation_sessions`.
+**Bảng dữ liệu lõi (logic):** `users` (email unique, `role`, xóa cứng), `topics`, `lemmas`, `prompts`, `prompt_lemmas`, `user_topic_overrides`, `srs_cards`, `srs_reviews`, `rewrite_attempts`, `plan_changes`, `plan_limits`, `tos_acceptances`, `beta_allowlist_emails`, `quota_grants`, `audit_logs`, `impersonation_sessions`.
 
 ---
 
@@ -947,4 +948,4 @@ Gõ từ và cloze: đúng (theo tập so khớp mục 10.6) → `q=4`; sai → 
 
 ---
 
-*Hết PRD v1.4. Mọi thay đổi phạm vi MVP cần cập nhật mục 5, 8, 12 và 18.*
+*Hết PRD v1.4.1. Mọi thay đổi phạm vi MVP cần cập nhật mục 5, 8, 12 và 18.*

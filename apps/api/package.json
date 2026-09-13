@@ -12,7 +12,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:validate": "prisma validate",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "promote-admin": "ts-node --compiler-options {\"module\":\"CommonJS\",\"esModuleInterop\":true} prisma/promote-admin.ts"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\",\"esModuleInterop\":true,\"resolveJsonModule\":true} prisma/seed.ts"

@@ -39,7 +39,10 @@ const fixedRandom = (value: number): Random => ({ next: () => value });
 describe('scorePrompt (design §8.2 weights)', () => {
   it('adds WEIGHT_DUE_OR_LEARNING per due/learning target lemma', () => {
     const p = prompt('p1', ['l1', 'l2', 'l3']);
-    const s = signals({ dueOrLearningLemmaIds: new Set(['l1', 'l2']), scoredPromptIds: new Set(['p1']) });
+    const s = signals({
+      dueOrLearningLemmaIds: new Set(['l1', 'l2']),
+      scoredPromptIds: new Set(['p1']),
+    });
     expect(scorePrompt(p, s)).toBe(2 * PICKER.WEIGHT_DUE_OR_LEARNING);
   });
 
@@ -51,7 +54,10 @@ describe('scorePrompt (design §8.2 weights)', () => {
 
   it('adds WEIGHT_ONBOARDING_TOPIC when the prompt topic is an onboarding topic', () => {
     const p = prompt('p1', ['l1'], 'topic-x');
-    const s = signals({ onboardingTopicIds: new Set(['topic-x']), scoredPromptIds: new Set(['p1']) });
+    const s = signals({
+      onboardingTopicIds: new Set(['topic-x']),
+      scoredPromptIds: new Set(['p1']),
+    });
     expect(scorePrompt(p, s)).toBe(PICKER.WEIGHT_ONBOARDING_TOPIC);
   });
 
@@ -90,7 +96,15 @@ describe('rankCandidates', () => {
     expect(ranked).toHaveLength(PICKER.TOP_N);
     expect(ranked[0]?.id).toBe('p11'); // due lemma (+3, +1 never done) beats everyone
     // remaining never-done prompts (score 1) come before scored ones (score 0), id-ordered
-    expect(ranked.slice(1).map((p) => p.id)).toEqual(['p05', 'p06', 'p07', 'p08', 'p09', 'p10', 'p00']);
+    expect(ranked.slice(1).map((p) => p.id)).toEqual([
+      'p05',
+      'p06',
+      'p07',
+      'p08',
+      'p09',
+      'p10',
+      'p00',
+    ]);
   });
 });
 

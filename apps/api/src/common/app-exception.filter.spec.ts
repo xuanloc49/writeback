@@ -27,7 +27,11 @@ describe('AppExceptionFilter (design §5.2 envelope)', () => {
     new AppExceptionFilter().catch(appError('QUOTA_EXCEEDED'), host);
     expect(res.status).toHaveBeenCalledWith(429);
     expect(res.json).toHaveBeenCalledWith({
-      error: { code: 'QUOTA_EXCEEDED', message: ERROR_MESSAGES_VI.QUOTA_EXCEEDED, request_id: 'req-123' },
+      error: {
+        code: 'QUOTA_EXCEEDED',
+        message: ERROR_MESSAGES_VI.QUOTA_EXCEEDED,
+        request_id: 'req-123',
+      },
     });
     expect(res.setHeader).toHaveBeenCalledWith(REQUEST_ID_HEADER, 'req-123');
   });

@@ -14,7 +14,9 @@ function input(userEn: string, headwords: string[]): ScoringInput {
 describe('FakeScoringProvider', () => {
   it('marks a headword used when an inflection appears, false otherwise', async () => {
     const provider = new FakeScoringProvider();
-    const result = await provider.score(input('Yesterday I submitted the report.', ['submit', 'deadline']));
+    const result = await provider.score(
+      input('Yesterday I submitted the report.', ['submit', 'deadline']),
+    );
     const raw = result.raw as ScoringOutput;
     expect(raw.used_required_words).toEqual([
       expect.objectContaining({ headword: 'submit', used: true, natural: true }),
@@ -25,7 +27,13 @@ describe('FakeScoringProvider', () => {
 
   it('returns an enqueued payload once, then falls back to deterministic output', async () => {
     const provider = new FakeScoringProvider();
-    const canned: ScoringResult = { raw: { canned: true }, model: 'm', inputTokens: 1, outputTokens: 2, latencyMs: 3 };
+    const canned: ScoringResult = {
+      raw: { canned: true },
+      model: 'm',
+      inputTokens: 1,
+      outputTokens: 2,
+      latencyMs: 3,
+    };
     provider.enqueue(canned);
     expect(await provider.score(input('x', ['submit']))).toBe(canned);
     const second = await provider.score(input('x', ['submit']));

@@ -17,9 +17,13 @@ function build(setup: Setup) {
       findMany: jest.fn().mockResolvedValue(topics.map((topicId) => ({ topicId }))),
     },
     tosAcceptance: {
-      findFirst: jest.fn().mockResolvedValue(
-        setup.latestTos === undefined ? { tosVersion: 'v2', privacyVersion: 'p2' } : setup.latestTos,
-      ),
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(
+          setup.latestTos === undefined
+            ? { tosVersion: 'v2', privacyVersion: 'p2' }
+            : setup.latestTos,
+        ),
     },
     betaAllowlistEmail: {
       findUnique: jest.fn().mockResolvedValue(setup.allowlisted ? { email: 'x@y.z' } : null),
@@ -46,7 +50,11 @@ function build(setup: Setup) {
 
 describe('LearningGateService.evaluate (design §6.1 gate order)', () => {
   it('returns TOS_REQUIRED before BETA_BLOCKED when ToS never accepted', async () => {
-    const { service, user } = build({ tosAcceptedAt: null, allowlistEnabled: true, allowlisted: false });
+    const { service, user } = build({
+      tosAcceptedAt: null,
+      allowlistEnabled: true,
+      allowlisted: false,
+    });
     const result = await service.evaluate(user);
     expect(result).toMatchObject({ blocked: true, reason: 'TOS_REQUIRED' });
   });
@@ -59,11 +67,17 @@ describe('LearningGateService.evaluate (design §6.1 gate order)', () => {
   it('returns BETA_BLOCKED for a non-staff user not on the allowlist', async () => {
     const { service, user, prisma } = build({ allowlistEnabled: true, allowlisted: false });
     expect((await service.evaluate(user)).reason).toBe('BETA_BLOCKED');
-    expect(prisma.betaAllowlistEmail.findUnique).toHaveBeenCalledWith({ where: { email: 'x@y.z' } });
+    expect(prisma.betaAllowlistEmail.findUnique).toHaveBeenCalledWith({
+      where: { email: 'x@y.z' },
+    });
   });
 
   it('lets staff through the allowlist gate', async () => {
-    const { service, user, prisma } = build({ allowlistEnabled: true, allowlisted: false, role: 'admin' });
+    const { service, user, prisma } = build({
+      allowlistEnabled: true,
+      allowlisted: false,
+      role: 'admin',
+    });
     expect((await service.evaluate(user)).blocked).toBe(false);
     expect(prisma.betaAllowlistEmail.findUnique).not.toHaveBeenCalled();
   });

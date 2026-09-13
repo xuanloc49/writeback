@@ -15,10 +15,23 @@ describe('computeLeft (design §9.1)', () => {
 });
 
 describe('QuotaService.remaining', () => {
-  const FREE = { rewriteNewPerDay: 5, retryPerDay: 3, reviewSessionCap: 20, newCardsUsedNaturalPerDay: 20 };
-  const STAFF = { rewriteNewPerDay: 500, retryPerDay: 500, reviewSessionCap: 500, newCardsUsedNaturalPerDay: null };
+  const FREE = {
+    rewriteNewPerDay: 5,
+    retryPerDay: 3,
+    reviewSessionCap: 20,
+    newCardsUsedNaturalPerDay: 20,
+  };
+  const STAFF = {
+    rewriteNewPerDay: 500,
+    retryPerDay: 500,
+    reviewSessionCap: 500,
+    newCardsUsedNaturalPerDay: null,
+  };
 
-  function build(counts: { new: number; retry: number }, grants: { new: number | null; retry: number | null }) {
+  function build(
+    counts: { new: number; retry: number },
+    grants: { new: number | null; retry: number | null },
+  ) {
     const planLimits = {
       forUser: jest.fn(async (user: { role: string }) => (user.role === 'admin' ? STAFF : FREE)),
     };
@@ -34,19 +47,30 @@ describe('QuotaService.remaining', () => {
           .mockResolvedValue({ _sum: { extraRewriteNew: grants.new, extraRetry: grants.retry } }),
       },
     };
-    const service = new QuotaService(planLimits as never, { businessTz: 'Asia/Ho_Chi_Minh' } as never);
+    const service = new QuotaService(
+      planLimits as never,
+      { businessTz: 'Asia/Ho_Chi_Minh' } as never,
+    );
     return { service, tx, planLimits };
   }
 
   it('computes rev1 and rev2 remaining separately, including grants', async () => {
     const { service, tx } = build({ new: 2, retry: 1 }, { new: 1, retry: null });
-    const left = await service.remaining(tx as never, { id: 'u1', role: 'user', plan: 'free' }, NOW);
+    const left = await service.remaining(
+      tx as never,
+      { id: 'u1', role: 'user', plan: 'free' },
+      NOW,
+    );
     expect(left).toEqual({ rewriteNewLeft: 5 - 2 + 1, retryLeft: 3 - 1 });
   });
 
   it('clamps at zero when over-charged', async () => {
     const { service, tx } = build({ new: 9, retry: 7 }, { new: null, retry: null });
-    const left = await service.remaining(tx as never, { id: 'u1', role: 'user', plan: 'free' }, NOW);
+    const left = await service.remaining(
+      tx as never,
+      { id: 'u1', role: 'user', plan: 'free' },
+      NOW,
+    );
     expect(left).toEqual({ rewriteNewLeft: 0, retryLeft: 0 });
   });
 

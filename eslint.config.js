@@ -13,6 +13,7 @@ module.exports = defineConfig(
       '**/.next',
       '**/coverage',
       '**/generated',
+      '**/next-env.d.ts',
       'pnpm-lock.yaml',
     ],
   },

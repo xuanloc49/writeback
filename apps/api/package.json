@@ -11,7 +11,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "prisma:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\",\"esModuleInterop\":true,\"resolveJsonModule\":true} prisma/seed.ts"
   },
   "dependencies": {
     "@auth/express": "^0.12.3",

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "strict": false,
+  "topics": [
+    { "slug": "cong-so", "name_vi": "Công sở" },
+    { "slug": "du-lich", "name_vi": "Du lịch" }
+  ],
+  "lemmas": [
+    {
+      "headword": "deadline",
+      "pos": "noun",
+      "phonetic": "/ˈdedlaɪn/",
+      "sense_vi": "hạn chót nộp việc",
+      "example_en": "The report deadline is Friday afternoon.",
+      "notes_vi": "Thường đi với miss/meet/extend a deadline.",
+      "topic_slug": "cong-so",
+      "included_in_free": true
+    },
+    {
+      "headword": "overtime",
+      "pos": "noun",
+      "phonetic": "/ˈəʊvətaɪm/",
+      "sense_vi": "giờ làm thêm",
+      "example_en": "I stayed for overtime to finish the report.",
+      "topic_slug": "cong-so",
+      "included_in_free": true
+    },
+    {
+      "headword": "timesheet",
+      "pos": "noun",
+      "phonetic": "/ˈtaɪmʃiːt/",
+      "sense_vi": "bảng chấm công",
+      "example_en": "Please submit your timesheet every Friday.",
+      "topic_slug": "cong-so",
+      "included_in_free": true
+    },
+    {
+      "headword": "itinerary",
+      "pos": "noun",
+      "phonetic": "/aɪˈtɪnərəri/",
+      "sense_vi": "lịch trình chuyến đi",
+      "example_en": "Our itinerary includes two nights in Hue.",
+      "topic_slug": "du-lich",
+      "included_in_free": true
+    },
+    {
+      "headword": "layover",
+      "pos": "noun",
+      "phonetic": "/ˈleɪəʊvə/",
+      "sense_vi": "thời gian quá cảnh",
+      "example_en": "The layover in Doha lasts four hours.",
+      "topic_slug": "du-lich",
+      "included_in_free": true
+    },
+    {
+      "headword": "hostel",
+      "pos": "noun",
+      "phonetic": "/ˈhɒstel/",
+      "sense_vi": "nhà nghỉ giá rẻ",
+      "example_en": "The hostel near the station has lockers.",
+      "topic_slug": "du-lich",
+      "included_in_free": true
+    }
+  ],
+  "prompts": [
+    {
+      "external_key": "office-deadline-overtime",
+      "text_vi": "Sếp nhắc hạn chót là hôm nay, nên tôi phải ở lại làm thêm.",
+      "topic_slug": "cong-so",
+      "target_headwords": ["deadline", "overtime"],
+      "sample_en": "The boss reminded me the deadline is today, so I have to stay for overtime.",
+      "hints_vi": "Dùng deadline và overtime trong một câu."
+    },
+    {
+      "external_key": "office-deadline-timesheet",
+      "text_vi": "Hãy nộp bảng chấm công trước hạn chót chiều nay.",
+      "topic_slug": "cong-so",
+      "target_headwords": ["timesheet", "deadline"],
+      "sample_en": "Please submit the timesheet before this afternoon's deadline."
+    },
+    {
+      "external_key": "office-overtime-timesheet",
+      "text_vi": "Ca làm thêm tối qua vẫn chưa ghi vào bảng chấm công.",
+      "topic_slug": "cong-so",
+      "target_headwords": ["overtime", "timesheet"],
+      "sample_en": "Last night's overtime is still not on the timesheet."
+    },
+    {
+      "external_key": "travel-itinerary-layover",
+      "text_vi": "Lịch trình có một lần quá cảnh dài ở Singapore.",
+      "topic_slug": "du-lich",
+      "target_headwords": ["itinerary", "layover"],
+      "sample_en": "The itinerary includes a long layover in Singapore."
+    },
+    {
+      "external_key": "travel-itinerary-hostel",
+      "text_vi": "Theo lịch trình, tối nay chúng tôi ngủ ở nhà nghỉ gần ga.",
+      "topic_slug": "du-lich",
+      "target_headwords": ["itinerary", "hostel"],
+      "sample_en": "According to the itinerary, we stay at a hostel near the station tonight."
+    },
+    {
+      "external_key": "travel-layover-hostel",
+      "text_vi": "Trong lúc quá cảnh, chúng tôi gửi đồ ở nhà nghỉ.",
+      "topic_slug": "du-lich",
+      "target_headwords": ["layover", "hostel"],
+      "sample_en": "During the layover we leave our bags at the hostel."
+    }
+  ]
+}

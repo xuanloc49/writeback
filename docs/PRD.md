@@ -2,14 +2,15 @@
 
 **Dự án:** Learning English  
 **Loại tài liệu:** Product Requirements Document  
-**Phiên bản:** 1.4.1  
+**Phiên bản:** 1.4.2
 **Ngày:** 2026-09-13  
 **Trạng thái:** v1.4 nâng vận hành enterprise (vòng học giữ v1.3; không mở lớp/thanh toán/thi)  
 **Changelog v1.1:** keo viết↔SRS (auto-add + picker); 1 revision/attempt; cloze; `idea_match`; chi tiết từ; ≥ 2 prompt/lemma; điểm 0–100 xuống phụ.  
 **Changelog v1.2:** chốt contradiction + P0 pressure-test (không mở non-goals). Metric đo được; `sample_en` pedagogic sau khi có card; picker hard-filter due; không add tay; override chỉ topic; admin `/app` = catalog published + quota Admin; trừ quota khi JSON đúng schema; mint `attempt_id` lúc start; trần 20 = từ used+natural; ≥2 prompt = blocker UI + gate beta; allowlist closed beta; WR-xx + AC còn thiếu. Chi tiết mục 12.  
 **Changelog v1.3:** bỏ hard-filter due (due = +3 ranking); CTA lemma lọc lemma trước; cloze/gõ word-boundary + inflection + bất quy tắc; unhide + list đã gỡ; tách `prompt.sample_en` (chấm/copy-block, snapshot) và `lemma.example_en` (ôn); cổng onboarding + start hết quota 429 không mint; due theo ngày GMT+7, q=1 new/learning = +10 phút; chỉ `lemma.included_in_free`, bỏ `thin_content_ok` và cờ Free trên topic/prompt. Unique headword toàn hệ thống + quy tắc seed từ chuyên biệt topic. Stack tách Vercel/Fly giữ.  
 **Changelog v1.4:** vận hành enterprise quanh cùng sản phẩm B2C. RBAC `user|editor|support|admin`; audit mọi hành động đặc quyền (kể cả xem PII, publish); impersonate + restore quota có lý do/TTL; allowlist UI; re-accept ToS theo version; checkbox 15+ trên ToS. NFR: SLO, staging, HA ≥2 máy API, Redis rate-limit, PITR, eval LLM trên CI, OpenAPI bắt buộc. **Không** mở lớp/gia sư, thanh toán, đề thi, SSO trường.  
-**Changelog v1.4.1:** hạn mức fair-use lưu **bảng `plan_limits`** theo profile `free | premium | staff` (một nguồn sự thật, seed lúc migrate); bỏ hằng số staff trong code và env `ADMIN_REWRITE_NEW`. Không đổi con số hay hành vi.  
+**Changelog v1.4.1:** hạn mức fair-use lưu **bảng `plan_limits`** theo profile `free | premium | staff` (một nguồn sự thật, seed lúc migrate); bỏ hằng số staff trong code và env `ADMIN_REWRITE_NEW`. Không đổi con số hay hành vi.
+**Changelog v1.4.2:** copy hết lượt nêu giờ reset suy từ `BUSINESS_TZ` (mặc định 00:00 GMT+7) và API kèm `resetAt`; câu mẫu `model_rewrite_en` luôn có trong dữ liệu attempt đã chấm, quy tắc hiện/ẩn thuộc UI. Không đổi hành vi học.
 **Ngôn ngữ sản phẩm (UI):** Tiếng Việt  
 **Nền tảng MVP:** Web (responsive desktop + mobile)
 
@@ -232,7 +233,7 @@ Các số là **default v1**, lưu **bảng `plan_limits`** theo profile `free |
 
 - “Không giới hạn bộ từ” của Premium = **mọi nội dung published**, không phải user tự tạo kho toàn hệ thống.
 - “Không giới hạn câu viết lại” trong ý tưởng ban đầu được **sửa cho production**: Premium vẫn có trần 50/ngày để bảo vệ chi phí. PRD và UI phải nói **“tới 50 lượt/ngày”**, không ghi “không giới hạn”. UI retry: **“1 lần sửa bài không trừ lượt (còn N lần sửa hôm nay)”** — không ghi unlimited sửa.
-- Hết quota bài mới: HTTP/UX `429` trên **cả** `POST /rewrite/start` và lúc nộp (copy rõ: hết lượt, giờ reset 00:00 GMT+7, CTA ôn SRS). **Start hết quota không mint `attempt_id`.** Hết trần retry: ẩn nút revision, CTA bài mới hoặc ôn SRS.
+- Hết quota bài mới: HTTP/UX `429` trên **cả** `POST /rewrite/start` và lúc nộp (copy rõ: hết lượt, giờ reset 00:00 GMT+7, CTA ôn SRS). Giờ reset trong copy **suy ra từ `BUSINESS_TZ`** (mặc định 00:00 GMT+7); API kèm `resetAt` để UI hiển thị; không ghi cứng múi giờ trong code. **Start hết quota không mint `attempt_id`.** Hết trần retry: ẩn nút revision, CTA bài mới hoặc ôn SRS.
 - **Trừ quota** khi server nhận JSON **đúng schema** (scored hợp lệ), kể cả điểm thấp / `off_topic` / từ không dùng. **Không trừ:** timeout, 5xx, sai schema, copy-block `sample_en`/`model_rewrite_en`, 409 unpublish, 429 hết lượt, chưa gọi LLM. Sai schema / timeout / 5xx: retry **cùng** `attempt_id` + `revision`.
 - `revision = 2` **không trừ** lượt viết lại mới; vẫn gọi LLM; vẫn ghi usage/token. Vượt trần retry/ngày hoặc hết 15 phút server → chặn, không gọi AI.
 - Trần 20 (Free): chỉ áp cho card mới **used ∧ natural**. Không fail bài chấm vì trần từ. Không add tay.
@@ -948,4 +949,4 @@ Gõ từ và cloze: đúng (theo tập so khớp mục 10.6) → `q=4`; sai → 
 
 ---
 
-*Hết PRD v1.4.1. Mọi thay đổi phạm vi MVP cần cập nhật mục 5, 8, 12 và 18.*
+*Hết PRD v1.4.2. Mọi thay đổi phạm vi MVP cần cập nhật mục 5, 8, 12 và 18.*

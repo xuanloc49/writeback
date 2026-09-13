@@ -2,7 +2,7 @@
 
 **Dự án:** Learning English / WriteBack (tên tạm)  
 **Loại tài liệu:** Technical Design (implementation-ready)  
-**Phiên bản:** 1.3  
+**Phiên bản:** 1.3.1
 **Ngày:** 2026-09-13  
 **Trạng thái:** chốt theo PRD v1.4.1 (vận hành enterprise)  
 **Nguồn hành vi:** [`docs/PRD.md`](./PRD.md)  
@@ -10,6 +10,7 @@
 **Changelog v1.1:** picker ranking; cloze inflection; unhide; sample/example; snapshot; onboarding; due GMT+7; lemma Free; unique email.  
 **Changelog v1.2:** Redis rate-limit; Fly ≥ 2; staging; PITR; RBAC 4 role; audit_logs; impersonate; quota_grants; allowlist bảng; OpenAPI bắt buộc; eval+adversarial CI. D8 đổi (Redis). D10 = charged rows + grants.  
 **Changelog v1.3:** `plan_limits` theo `LimitProfile` `free | premium | staff` (một nguồn sự thật, seed lúc migrate); bỏ hằng số staff trong code + env `ADMIN_REWRITE_NEW`. `/ready` trả `{ db, redis }`.
+**Changelog v1.3.1:** `QUOTA_EXCEEDED` kèm `details.resetAt`, giờ reset suy từ `BUSINESS_TZ`; `GET /rewrite/:attemptId` luôn trả `modelRewriteEn` + `showModelRewriteToggle` (trình bày thuộc UI); `SCORING_TEMPERATURE = 0` là hằng số code cạnh `SCORING_PROMPT_VERSION` (không env).
 
 ---
 
@@ -229,6 +230,8 @@ Mọi lỗi JSON (không kể Auth.js HTML):
 ```
 
 `message` tiếng Việt, hiện được cho user. Header `X-Request-Id` luôn có (client gửi hoặc server mint).
+
+`QUOTA_EXCEEDED`: `message` nêu giờ reset **suy ra từ `BUSINESS_TZ`** (không hard-code chuỗi múi giờ trong code); `details.resetAt` = mốc ISO đầu ngày nghiệp vụ kế tiếp (`businessDayRange(now, BUSINESS_TZ).end`) để UI hiển thị theo giờ máy người dùng.
 
 ### 5.3 Mã lỗi
 
@@ -615,6 +618,7 @@ Chỉ `LlmModule.scoreRewrite`.
 
 - `response_format`: json_schema strict = `scoringOutputSchema`
 - Timeout 20s  
+- `temperature` = hằng số `SCORING_TEMPERATURE = 0` trong code, cạnh `SCORING_PROMPT_VERSION` (**không** env). Đổi = bump `prompt_version` + eval vàng.  
 - `max_output_tokens` env  
 - Không gửi conversation history  
 
@@ -701,7 +705,7 @@ Không hero score; vẫn trả `overallScore`.
 
 **GET `/rewrite/:attemptId`**
 
-Gia đình attempt của mình: rev 1 bắt buộc, rev 2 nếu có. 404 nếu không phải chủ.
+Gia đình attempt của mình: rev 1 bắt buộc, rev 2 nếu có. 404 nếu không phải chủ. Luôn trả `modelRewriteEn` của **mọi** revision đã chấm cùng cờ `showModelRewriteToggle`; quy tắc trình bày (sau checklist ở rev 1; toggle thu gọn trên form rev 2 chỉ khi điểm lần 1 < 50; hai bản sau rev 2 — PRD 10.4) thuộc UI. Server **không** gate theo thời gian; chống chép = copy-block lúc nộp.
 
 **POST `/rewrite/:attemptId/revision`** (optional alias) — không cần; client POST submit `revision:2` sau khi `GET` biết còn cửa sổ.
 
@@ -1445,5 +1449,5 @@ Rate-limit SoT = Redis, không bảng PG. Seed `plan_limits` (free/premium/staff
 
 ---
 
-*Hết design v1.3. Đổi D1–D12 hoặc PRD v1.4+ phải bump phiên bản file này.*
+*Hết design v1.3.1. Đổi D1–D12 hoặc PRD v1.4+ phải bump phiên bản file này.*
 

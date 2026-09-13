@@ -11,6 +11,7 @@ import {
   type DisplayIssue,
   type ScoringOutput,
 } from '@writeback/shared';
+import { ActivityService } from '../activity/activity.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { VisibilityService, type PromptWithLemmas } from '../catalog/visibility.service';
 import { AppError, appError } from '../common/app-error';
@@ -54,6 +55,7 @@ export class RewriteService {
     private readonly visibility: VisibilityService,
     private readonly autoAdd: AutoAddService,
     private readonly analytics: AnalyticsService,
+    private readonly activity: ActivityService,
     private readonly cost: CostEstimator,
     private readonly config: AppConfig,
     @Inject(SCORING_PROVIDER) private readonly scoring: ScoringProvider,
@@ -377,6 +379,9 @@ export class RewriteService {
         },
       });
       const cards = await this.autoAdd.apply(tx, user, updated, output, now);
+      if (updated.revision === FIRST_REVISION) {
+        await this.activity.recordRewriteNew(tx, user.id, now, requestId);
+      }
       await this.analytics.track(
         'rewrite_scored',
         user.id,

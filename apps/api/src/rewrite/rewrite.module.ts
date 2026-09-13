@@ -13,5 +13,6 @@ import { RewriteService } from './rewrite.service';
   imports: [AuthModule, CatalogModule, QuotaModule, LlmModule, VocabModule],
   controllers: [RewriteController],
   providers: [PickerService, RewriteService, RateLimitGuard],
+  exports: [RewriteService],
 })
 export class RewriteModule {}

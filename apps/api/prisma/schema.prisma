@@ -1,0 +1,460 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  editor
+  support
+  admin
+}
+
+enum Plan {
+  free
+  premium
+}
+
+enum LimitProfile {
+  free
+  premium
+  staff
+}
+
+enum ContentStatus {
+  draft
+  published
+}
+
+enum OverrideKind {
+  allow
+  deny
+}
+
+enum AttemptStatus {
+  started
+  scoring
+  scored
+  failed
+}
+
+enum IdeaMatchStatus {
+  enough
+  missing
+  off_topic
+}
+
+enum SrsStatus {
+  new
+  learning
+  review
+  mastered
+}
+
+enum ReviewMode {
+  flashcard
+  type
+  cloze
+}
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  name                  String?
+  email                 String    @unique
+  emailVerified         DateTime? @db.Timestamptz(6)
+  image                 String?
+  role                  Role      @default(user)
+  plan                  Plan      @default(free)
+  tosAcceptedAt         DateTime? @map("tos_accepted_at") @db.Timestamptz(6)
+  lastLoginAt           DateTime? @map("last_login_at") @db.Timestamptz(6)
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at") @db.Timestamptz(6)
+  streakCount           Int       @default(0) @map("streak_count")
+  streakLastDate        DateTime? @map("streak_last_date") @db.Date
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  accounts               Account[]
+  sessions               Session[]
+  tosAcceptances         TosAcceptance[]
+  onboardingTopics       UserOnboardingTopic[]
+  overrides              UserTopicOverride[]
+  cards                  SrsCard[]
+  attempts               RewriteAttempt[]
+  reviewSessions         ReviewSession[]
+  dailyActivity          UserDailyActivity[]
+  planChanges            PlanChange[]           @relation("PlanChangeSubject")
+  planChangesMade        PlanChange[]           @relation("PlanChangeActor")
+  overridesCreated       UserTopicOverride[]    @relation("OverrideActor")
+  importBatches          ImportBatch[]
+  events                 AnalyticsEvent[]
+  auditLogs              AuditLog[]             @relation("AuditActor")
+  quotaGrants            QuotaGrant[]           @relation("QuotaGrantUser")
+  quotaGrantsMade        QuotaGrant[]           @relation("QuotaGrantActor")
+  impersonationsAsActor  ImpersonationSession[] @relation("ImpersonationActor")
+  impersonationsAsTarget ImpersonationSession[] @relation("ImpersonationTarget")
+  allowlistCreated       BetaAllowlistEmail[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime @db.Timestamptz(6)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime @db.Timestamptz(6)
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model TosAcceptance {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  acceptedAt     DateTime @map("accepted_at") @db.Timestamptz(6)
+  tosVersion     String   @map("tos_version")
+  privacyVersion String   @map("privacy_version")
+  ageAttested    Boolean  @map("age_attested")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("tos_acceptances")
+}
+
+model Topic {
+  id        String        @id @default(uuid()) @db.Uuid
+  slug      String
+  nameVi    String        @map("name_vi")
+  status    ContentStatus @default(draft)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  lemmas    Lemma[]
+  prompts   Prompt[]
+
+  @@map("topics")
+}
+
+model Lemma {
+  id                 String        @id @default(uuid()) @db.Uuid
+  headword           String
+  headwordNormalized String        @map("headword_normalized")
+  pos                String?
+  phonetic           String?
+  senseVi            String        @map("sense_vi")
+  exampleEn          String?       @map("example_en")
+  notesVi            String?       @map("notes_vi")
+  topicId            String        @map("topic_id") @db.Uuid
+  includedInFree     Boolean       @default(false) @map("included_in_free")
+  status             ContentStatus @default(draft)
+  cefr               String?
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  topic              Topic         @relation(fields: [topicId], references: [id])
+  promptLinks        PromptLemma[]
+  cards              SrsCard[]
+
+  @@index([topicId, status])
+  @@map("lemmas")
+}
+
+model Prompt {
+  id          String           @id @default(uuid()) @db.Uuid
+  externalKey String?          @map("external_key")
+  textVi      String           @map("text_vi")
+  topicId     String           @map("topic_id") @db.Uuid
+  sampleEn    String?          @map("sample_en")
+  hintsVi     String?          @map("hints_vi")
+  status      ContentStatus    @default(draft)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime?        @map("deleted_at") @db.Timestamptz(6)
+  topic       Topic            @relation(fields: [topicId], references: [id])
+  lemmaLinks  PromptLemma[]
+  attempts    RewriteAttempt[]
+
+  @@index([topicId, status])
+  @@map("prompts")
+}
+
+model PromptLemma {
+  promptId  String @map("prompt_id") @db.Uuid
+  lemmaId   String @map("lemma_id") @db.Uuid
+  sortOrder Int    @default(0) @map("sort_order")
+  prompt    Prompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  lemma     Lemma  @relation(fields: [lemmaId], references: [id])
+
+  @@id([promptId, lemmaId])
+  @@index([lemmaId])
+  @@map("prompt_lemmas")
+}
+
+model UserOnboardingTopic {
+  userId  String @map("user_id") @db.Uuid
+  topicId String @map("topic_id") @db.Uuid
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, topicId])
+  @@map("user_onboarding_topics")
+}
+
+model UserTopicOverride {
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  topicId     String       @map("topic_id") @db.Uuid
+  kind        OverrideKind
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String       @map("created_by_id") @db.Uuid
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("OverrideActor", fields: [createdById], references: [id])
+
+  @@unique([userId, topicId])
+  @@map("user_topic_overrides")
+}
+
+model PlanLimit {
+  profile                   LimitProfile @id
+  rewriteNewPerDay          Int          @map("rewrite_new_per_day")
+  retryPerDay               Int          @map("retry_per_day")
+  reviewSessionCap          Int          @map("review_session_cap")
+  newCardsUsedNaturalPerDay Int?         @map("new_cards_used_natural_per_day")
+
+  @@map("plan_limits")
+}
+
+model PlanChange {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  fromPlan    Plan     @map("from_plan")
+  toPlan      Plan     @map("to_plan")
+  changedById String   @map("changed_by_id") @db.Uuid
+  note        String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user        User     @relation("PlanChangeSubject", fields: [userId], references: [id], onDelete: Cascade)
+  actor       User     @relation("PlanChangeActor", fields: [changedById], references: [id])
+
+  @@index([userId])
+  @@map("plan_changes")
+}
+
+model RewriteAttempt {
+  id                   String           @id @default(uuid()) @db.Uuid
+  attemptId            String           @map("attempt_id") @db.Uuid
+  revision             Int
+  parentAttemptId      String?          @map("parent_attempt_id") @db.Uuid
+  userId               String           @map("user_id") @db.Uuid
+  promptId             String           @map("prompt_id") @db.Uuid
+  status               AttemptStatus    @default(started)
+  userEn               String?          @map("user_en")
+  promptTextViSnapshot String           @map("prompt_text_vi_snapshot")
+  sampleEnSnapshot     String           @map("sample_en_snapshot")
+  targetsSnapshot      Json             @map("targets_snapshot")
+  topicIdSnapshot      String           @map("topic_id_snapshot") @db.Uuid
+  scoredAt             DateTime?        @map("scored_at") @db.Timestamptz(6)
+  overallScore         Int?             @map("overall_score")
+  ideaMatchStatus      IdeaMatchStatus? @map("idea_match_status")
+  ideaMatchCommentVi   String?          @map("idea_match_comment_vi")
+  feedback             Json?
+  displayIssues        Json?            @map("display_issues")
+  model                String?
+  promptVersion        String?          @map("prompt_version")
+  inputTokens          Int?             @map("input_tokens")
+  outputTokens         Int?             @map("output_tokens")
+  costEstimateUsd      Decimal?         @map("cost_estimate_usd") @db.Decimal(12, 6)
+  latencyMs            Int?             @map("latency_ms")
+  requestId            String?          @map("request_id")
+  quotaCharged         Boolean          @default(false) @map("quota_charged")
+  failReason           String?          @map("fail_reason")
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt               Prompt           @relation(fields: [promptId], references: [id])
+  parent               RewriteAttempt?  @relation("AttemptRevision", fields: [parentAttemptId], references: [id])
+  children             RewriteAttempt[] @relation("AttemptRevision")
+
+  @@unique([attemptId, revision])
+  @@index([userId, scoredAt])
+  @@index([userId, promptId])
+  @@map("rewrite_attempts")
+}
+
+model SrsCard {
+  id                    String      @id @default(uuid()) @db.Uuid
+  userId                String      @map("user_id") @db.Uuid
+  lemmaId               String      @map("lemma_id") @db.Uuid
+  status                SrsStatus   @default(new)
+  ef                    Float       @default(2.5)
+  repetitions           Int         @default(0)
+  intervalDays          Int         @default(0) @map("interval_days")
+  nextReviewAt          DateTime    @map("next_review_at") @db.Timestamptz(6)
+  hiddenAt              DateTime?   @map("hidden_at") @db.Timestamptz(6)
+  countedTowardDailyNew Boolean     @default(false) @map("counted_toward_daily_new")
+  addedFromAttemptId    String?     @map("added_from_attempt_id") @db.Uuid
+  addedRevision         Int?        @map("added_revision")
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lemma                 Lemma       @relation(fields: [lemmaId], references: [id])
+  reviews               SrsReview[]
+
+  @@unique([userId, lemmaId])
+  @@index([userId, nextReviewAt])
+  @@map("srs_cards")
+}
+
+model ReviewSession {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  cap         Int
+  gradedCount Int         @default(0) @map("graded_count")
+  startedAt   DateTime    @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt     DateTime?   @map("ended_at") @db.Timestamptz(6)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews     SrsReview[]
+
+  @@index([userId, startedAt])
+  @@map("review_sessions")
+}
+
+model SrsReview {
+  id        String        @id @default(uuid()) @db.Uuid
+  cardId    String        @map("card_id") @db.Uuid
+  sessionId String        @map("session_id") @db.Uuid
+  mode      ReviewMode
+  quality   Int
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  card      SrsCard       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  session   ReviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([cardId])
+  @@map("srs_reviews")
+}
+
+model UserDailyActivity {
+  userId          String   @map("user_id") @db.Uuid
+  date            DateTime @db.Date
+  rewriteNewCount Int      @default(0) @map("rewrite_new_count")
+  reviewCount     Int      @default(0) @map("review_count")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, date])
+  @@map("user_daily_activity")
+}
+
+model ImportBatch {
+  id            String    @id @default(uuid()) @db.Uuid
+  adminId       String    @map("admin_id") @db.Uuid
+  filename      String
+  schemaVersion Int       @map("schema_version")
+  strict        Boolean
+  result        Json
+  committedAt   DateTime? @map("committed_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  admin         User      @relation(fields: [adminId], references: [id])
+
+  @@map("import_batches")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  name      String
+  props     Json
+  requestId String?  @map("request_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@map("analytics_events")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  targetType String   @map("target_type")
+  targetId   String?  @map("target_id")
+  props      Json
+  requestId  String?  @map("request_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+model BetaAllowlistEmail {
+  email       String   @unique
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String   @map("created_by_id") @db.Uuid
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@map("beta_allowlist_emails")
+}
+
+model QuotaGrant {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  date            DateTime @db.Date
+  extraRewriteNew Int      @map("extra_rewrite_new")
+  extraRetry      Int      @map("extra_retry")
+  reason          String
+  createdById     String   @map("created_by_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User     @relation("QuotaGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor           User     @relation("QuotaGrantActor", fields: [createdById], references: [id])
+
+  @@index([userId, date])
+  @@map("quota_grants")
+}
+
+model ImpersonationSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  actorId   String    @map("actor_id") @db.Uuid
+  targetId  String    @map("target_id") @db.Uuid
+  reason    String
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor     User      @relation("ImpersonationActor", fields: [actorId], references: [id])
+  target    User      @relation("ImpersonationTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, endedAt])
+  @@map("impersonation_sessions")
+}

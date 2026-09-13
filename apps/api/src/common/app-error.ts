@@ -25,6 +25,7 @@ export const ERROR_MESSAGES_VI: Record<ErrorCode, string> = {
   COPY_BLOCKED: 'Câu của bạn trùng với câu mẫu. Hãy viết theo cách của riêng bạn.',
   UNPUBLISHED: 'Bài này không còn khả dụng. Hãy lấy bài khác.',
   SCORING_IN_PROGRESS: 'Bài đang được chấm, vui lòng chờ một chút.',
+  CONFLICT: 'Dữ liệu đã tồn tại hoặc đang xung đột với trạng thái hiện tại.',
   // Generic fallback; throw sites build the concrete message with the reset time (quota-reset.ts).
   QUOTA_EXCEEDED: 'Bạn đã hết lượt viết lại hôm nay. Lượt mới vào ngày mai.',
   RATE_LIMITED: 'Bạn gửi quá nhanh. Vui lòng thử lại sau ít phút.',

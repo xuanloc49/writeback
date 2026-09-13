@@ -8,7 +8,9 @@ describe('normalizeCopyBlock', () => {
   });
 
   it('applies NFKC so full-width characters fold to ASCII', () => {
-    expect(normalizeCopyBlock('Ｄｅａｄｌｉｎｅ　ｉｓ　ｔｏｍｏｒｒｏｗ！')).toBe('deadline is tomorrow');
+    expect(normalizeCopyBlock('Ｄｅａｄｌｉｎｅ　ｉｓ　ｔｏｍｏｒｒｏｗ！')).toBe(
+      'deadline is tomorrow',
+    );
   });
 
   it('preserves Vietnamese diacritics', () => {
@@ -29,7 +31,9 @@ describe('normalizeCopyBlock', () => {
 describe('isCopyBlocked', () => {
   it('blocks when the normalized sentence equals any reference', () => {
     expect(isCopyBlocked('Deadline is tomorrow!!', ['deadline is tomorrow'])).toBe(true);
-    expect(isCopyBlocked('Deadline is tomorrow!!', ['Something else', 'deadline, is tomorrow'])).toBe(true);
+    expect(
+      isCopyBlocked('Deadline is tomorrow!!', ['Something else', 'deadline, is tomorrow']),
+    ).toBe(true);
   });
 
   it('does not block different sentences or empty inputs', () => {

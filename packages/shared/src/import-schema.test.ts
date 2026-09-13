@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT } from './constants.js';
-import { importDocumentSchema, importLemmaSchema, importPromptSchema, importTopicSchema } from './import-schema.js';
+import {
+  importDocumentSchema,
+  importLemmaSchema,
+  importPromptSchema,
+  importTopicSchema,
+} from './import-schema.js';
 
 const prompt = {
   external_key: 'p-1',
@@ -31,7 +36,9 @@ describe('importDocumentSchema', () => {
 
   it('rejects a wrong schema_version and unknown root fields', () => {
     expect(importDocumentSchema.safeParse({ schema_version: 2 }).success).toBe(false);
-    expect(importDocumentSchema.safeParse({ schema_version: 1, published: true }).success).toBe(false);
+    expect(importDocumentSchema.safeParse({ schema_version: 1, published: true }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -59,27 +66,38 @@ describe('importLemmaSchema', () => {
 describe('importPromptSchema', () => {
   it('accepts text_vi at the limit and rejects 501 chars', () => {
     expect(
-      importPromptSchema.safeParse({ ...prompt, text_vi: 'a'.repeat(CONTENT.PROMPT_TEXT_VI_MAX_LENGTH) }).success,
+      importPromptSchema.safeParse({
+        ...prompt,
+        text_vi: 'a'.repeat(CONTENT.PROMPT_TEXT_VI_MAX_LENGTH),
+      }).success,
     ).toBe(true);
     expect(
-      importPromptSchema.safeParse({ ...prompt, text_vi: 'a'.repeat(CONTENT.PROMPT_TEXT_VI_MAX_LENGTH + 1) }).success,
+      importPromptSchema.safeParse({
+        ...prompt,
+        text_vi: 'a'.repeat(CONTENT.PROMPT_TEXT_VI_MAX_LENGTH + 1),
+      }).success,
     ).toBe(false);
   });
 
   it('requires 2–5 target headwords', () => {
-    expect(importPromptSchema.safeParse({ ...prompt, target_headwords: ['one'] }).success).toBe(false);
-    expect(
-      importPromptSchema.safeParse({ ...prompt, target_headwords: ['a', 'b', 'c', 'd', 'e', 'f'] }).success,
-    ).toBe(false);
-    expect(importPromptSchema.safeParse({ ...prompt, target_headwords: ['a', 'b', 'c', 'd', 'e'] }).success).toBe(
-      true,
+    expect(importPromptSchema.safeParse({ ...prompt, target_headwords: ['one'] }).success).toBe(
+      false,
     );
+    expect(
+      importPromptSchema.safeParse({ ...prompt, target_headwords: ['a', 'b', 'c', 'd', 'e', 'f'] })
+        .success,
+    ).toBe(false);
+    expect(
+      importPromptSchema.safeParse({ ...prompt, target_headwords: ['a', 'b', 'c', 'd', 'e'] })
+        .success,
+    ).toBe(true);
   });
 
   it('rejects duplicate target headwords after normalization', () => {
-    expect(importPromptSchema.safeParse({ ...prompt, target_headwords: ['deadline', ' Deadline'] }).success).toBe(
-      false,
-    );
+    expect(
+      importPromptSchema.safeParse({ ...prompt, target_headwords: ['deadline', ' Deadline'] })
+        .success,
+    ).toBe(false);
   });
 
   it('rejects a published field (strict)', () => {

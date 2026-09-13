@@ -15,7 +15,11 @@ const SENSE_VI_MAX_LENGTH = 300;
 const EXTERNAL_KEY_MAX_LENGTH = 100;
 const KEBAB_CASE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-const slugSchema = z.string().min(1).max(SLUG_MAX_LENGTH).regex(KEBAB_CASE, 'slug must be kebab-case');
+const slugSchema = z
+  .string()
+  .min(1)
+  .max(SLUG_MAX_LENGTH)
+  .regex(KEBAB_CASE, 'slug must be kebab-case');
 const headwordSchema = z.string().min(1).max(HEADWORD_MAX_LENGTH);
 
 export const cefrLevelSchema = z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);

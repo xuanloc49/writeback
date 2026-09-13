@@ -69,6 +69,45 @@ const IRREGULAR_VERBS: Readonly<Record<string, readonly string[]>> = Object.free
   win: ['won'],
 });
 
+/** Polysyllabic CVC verbs with final stress: these double the last consonant (submit → submitted). */
+const FINAL_STRESS_DOUBLING: ReadonlySet<string> = new Set([
+  'submit',
+  'commit',
+  'admit',
+  'permit',
+  'omit',
+  'emit',
+  'transmit',
+  'remit',
+  'regret',
+  'refer',
+  'prefer',
+  'defer',
+  'confer',
+  'infer',
+  'transfer',
+  'occur',
+  'recur',
+  'incur',
+  'concur',
+  'deter',
+  'control',
+  'patrol',
+  'equip',
+  'compel',
+  'propel',
+  'expel',
+  'repel',
+  'rebel',
+  'upset',
+  'allot',
+  'acquit',
+  'forbid',
+  'begin',
+  'forget',
+  'format',
+]);
+
 /** Irregular verbs whose third-person form is fully covered by the table (avoid "bes", "haves"). */
 const NO_REGULAR_THIRD_PERSON: ReadonlySet<string> = new Set(['be', 'have']);
 
@@ -125,28 +164,33 @@ function thirdPersonForm(word: string): string {
 }
 
 /**
- * Stems for -ed / -ing. Monosyllabic CVC words always double (plan → planned). Polysyllabic CVC
- * words are ambiguous without stress (submit → submitted, but visit → visited), so BOTH stems are
- * produced: cloze must never leak an un-blanked inflection (PRD §10.6 AC).
+ * Stem for -ed / -ing — one correctly spelled stem per word (PRD §10.6 / Appendix B: no fuzzy
+ * spelling). Monosyllabic CVC words double (plan → planned). Polysyllabic CVC words do NOT double
+ * (visit → visited, offer → offered) unless they carry final stress and are listed in
+ * `FINAL_STRESS_DOUBLING` (submit → submitted, occur → occurred).
  */
-function doublingStems(word: string): string[] {
-  if (!endsWithCvc(word)) return [word];
-  const doubled = `${word}${lastChar(word)}`;
-  return countVowelGroups(word) <= 1 ? [doubled] : [doubled, word];
+function suffixStem(word: string): string {
+  if (!endsWithCvc(word)) return word;
+  const doubles = countVowelGroups(word) <= 1 || FINAL_STRESS_DOUBLING.has(word);
+  return doubles ? `${word}${lastChar(word)}` : word;
 }
 
-function pastForms(word: string): string[] {
-  if (word.endsWith('e')) return [`${word}d`];
-  if (endsWithConsonantY(word)) return [`${word.slice(0, -1)}ied`];
-  return doublingStems(word).map((stem) => `${stem}ed`);
+function pastForm(word: string): string {
+  if (word.endsWith('e')) return `${word}d`;
+  if (endsWithConsonantY(word)) return `${word.slice(0, -1)}ied`;
+  return `${suffixStem(word)}ed`;
 }
 
-function gerundForms(word: string): string[] {
-  if (word.endsWith('ie')) return [`${word.slice(0, -2)}ying`];
-  if (word.endsWith('e') && word.length >= MIN_LENGTH_FOR_E_DROP && !endsWithAny(word, KEEP_E_BEFORE_ING)) {
-    return [`${word.slice(0, -1)}ing`];
+function gerundForm(word: string): string {
+  if (word.endsWith('ie')) return `${word.slice(0, -2)}ying`;
+  if (
+    word.endsWith('e') &&
+    word.length >= MIN_LENGTH_FOR_E_DROP &&
+    !endsWithAny(word, KEEP_E_BEFORE_ING)
+  ) {
+    return `${word.slice(0, -1)}ing`;
   }
-  return doublingStems(word).map((stem) => `${stem}ing`);
+  return `${suffixStem(word)}ing`;
 }
 
 /** All forms of one lowercase single word (always starts with the word itself). */
@@ -157,10 +201,10 @@ function singleWordForms(word: string): string[] {
   if (irregular !== undefined) {
     forms.push(...irregular);
     if (!NO_REGULAR_THIRD_PERSON.has(word)) forms.push(thirdPersonForm(word));
-    forms.push(...gerundForms(word));
+    forms.push(gerundForm(word));
     return forms;
   }
-  forms.push(thirdPersonForm(word), ...pastForms(word), ...gerundForms(word));
+  forms.push(thirdPersonForm(word), pastForm(word), gerundForm(word));
   return forms;
 }
 

@@ -28,7 +28,11 @@ describe('blankHeadword', () => {
   });
 
   it('prefers longer multi-word surfaces over their prefixes', () => {
-    const result = blankHeadword('I checked in late, then checked the mail.', 'check in', inflectionSet('check in'));
+    const result = blankHeadword(
+      'I checked in late, then checked the mail.',
+      'check in',
+      inflectionSet('check in'),
+    );
     expect(result.text).toBe(`I ${CLOZE_BLANK} late, then checked the mail.`);
     expect(result.blanked).toEqual(['checked in']);
   });
@@ -41,7 +45,10 @@ describe('blankHeadword', () => {
 
   it('leaves the sentence unchanged when there is no occurrence', () => {
     const sentence = 'Nothing to see here.';
-    expect(blankHeadword(sentence, 'deadline', inflectionSet('deadline'))).toEqual({ text: sentence, blanked: [] });
+    expect(blankHeadword(sentence, 'deadline', inflectionSet('deadline'))).toEqual({
+      text: sentence,
+      blanked: [],
+    });
     expect(blankHeadword(sentence, '   ')).toEqual({ text: sentence, blanked: [] });
   });
 

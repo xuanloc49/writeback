@@ -13,7 +13,12 @@ const sample: ScoringOutput = {
   idea_match: { status: 'enough', comment_vi: '...' },
   used_required_words: [{ headword: 'deadline', used: true, natural: true, comment_vi: '...' }],
   grammar_issues: [
-    { span: 'I go yesterday', severity: 'high', explanation_vi: '...', suggestion_en: 'I went yesterday' },
+    {
+      span: 'I go yesterday',
+      severity: 'high',
+      explanation_vi: '...',
+      suggestion_en: 'I went yesterday',
+    },
   ],
   lexical_issues: [],
   naturalness_note_vi: '...',
@@ -33,10 +38,14 @@ describe('scoringOutputSchema', () => {
   it('rejects unknown fields at every level (strict)', () => {
     expect(scoringOutputSchema.safeParse({ ...sample, extra: 1 }).success).toBe(false);
     expect(
-      scoringOutputSchema.safeParse({ ...sample, idea_match: { ...sample.idea_match, extra: 1 } }).success,
+      scoringOutputSchema.safeParse({ ...sample, idea_match: { ...sample.idea_match, extra: 1 } })
+        .success,
     ).toBe(false);
     expect(
-      scoringOutputSchema.safeParse({ ...sample, grammar_issues: [{ ...issue('x', 'low'), extra: 1 }] }).success,
+      scoringOutputSchema.safeParse({
+        ...sample,
+        grammar_issues: [{ ...issue('x', 'low'), extra: 1 }],
+      }).success,
     ).toBe(false);
   });
 
@@ -45,7 +54,10 @@ describe('scoringOutputSchema', () => {
     expect(scoringOutputSchema.safeParse({ ...sample, overall_score: 55.5 }).success).toBe(false);
     expect(scoringOutputSchema.safeParse({ ...sample, overall_score: -1 }).success).toBe(false);
     expect(
-      scoringOutputSchema.safeParse({ ...sample, idea_match: { status: 'partial', comment_vi: '' } }).success,
+      scoringOutputSchema.safeParse({
+        ...sample,
+        idea_match: { status: 'partial', comment_vi: '' },
+      }).success,
     ).toBe(false);
   });
 
@@ -59,7 +71,11 @@ describe('pickDisplayIssues', () => {
   it('puts all high first (grammar before lexical, stable), then medium, then low, capped at 3', () => {
     const picked = pickDisplayIssues({
       grammar_issues: [issue('g-low', 'low'), issue('g-high', 'high'), issue('g-med', 'medium')],
-      lexical_issues: [issue('l-high-1', 'high'), issue('l-high-2', 'high'), issue('l-med', 'medium')],
+      lexical_issues: [
+        issue('l-high-1', 'high'),
+        issue('l-high-2', 'high'),
+        issue('l-med', 'medium'),
+      ],
     });
     expect(picked.map((p) => p.span)).toEqual(['g-high', 'l-high-1', 'l-high-2']);
     expect(picked[0]).toMatchObject({ kind: 'grammar', explanationVi: 'vi', suggestionEn: 'en' });
@@ -101,8 +117,15 @@ describe('validateUsedWordsOneToOne', () => {
   });
 
   it('rejects a missing entry', () => {
-    const result = validateUsedWordsOneToOne({ used_required_words: [entry('deadline')] }, ['deadline', 'submit']);
-    expect(result).toMatchObject({ ok: false, reason: 'count_mismatch', details: { expected: 2, actual: 1 } });
+    const result = validateUsedWordsOneToOne({ used_required_words: [entry('deadline')] }, [
+      'deadline',
+      'submit',
+    ]);
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'count_mismatch',
+      details: { expected: 2, actual: 1 },
+    });
   });
 
   it('rejects an extra entry', () => {
@@ -118,7 +141,11 @@ describe('validateUsedWordsOneToOne', () => {
       { used_required_words: [entry('deadline'), entry('Deadline')] },
       ['deadline', 'submit'],
     );
-    expect(result).toMatchObject({ ok: false, reason: 'duplicate_headword', details: { duplicates: ['deadline'] } });
+    expect(result).toMatchObject({
+      ok: false,
+      reason: 'duplicate_headword',
+      details: { duplicates: ['deadline'] },
+    });
   });
 
   it('rejects a wrong headword with the same count', () => {

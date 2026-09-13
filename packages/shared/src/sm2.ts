@@ -76,7 +76,9 @@ export function nextSm2(card: Sm2CardState, quality: ReviewQuality, now: Date): 
 
   const intervalDays = nextIntervalDays(card);
   const missed = MAX_QUALITY - quality;
-  const ef = clampEf(card.ef + (EF_BASE_GAIN - missed * (EF_PENALTY_LINEAR + missed * EF_PENALTY_QUADRATIC)));
+  const ef = clampEf(
+    card.ef + (EF_BASE_GAIN - missed * (EF_PENALTY_LINEAR + missed * EF_PENALTY_QUADRATIC)),
+  );
   return {
     status: intervalDays >= SRS.MASTERED_INTERVAL_DAYS ? 'mastered' : 'review',
     ef,

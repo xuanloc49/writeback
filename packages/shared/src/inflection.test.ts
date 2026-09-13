@@ -17,10 +17,28 @@ describe('inflectionSet', () => {
     expect([...inflectionSet('check in')]).toEqual([...inflectionSet('check in')]);
   });
 
-  it('handles the regular family with consonant doubling', () => {
-    has('submit', 'submits', 'submitted', 'submitting');
+  it('doubles monosyllabic CVC words', () => {
     has('plan', 'plans', 'planned', 'planning');
     has('stop', 'stopped', 'stopping');
+    expect(inflectionSet('plan')).not.toContain('planed');
+  });
+
+  it('doubles final-stress polysyllabic words only, with exactly one spelling', () => {
+    has('submit', 'submits', 'submitted', 'submitting');
+    has('commit', 'committed', 'committing');
+    has('occur', 'occurred', 'occurring');
+    expect(inflectionSet('submit')).not.toContain('submited');
+    expect(inflectionSet('submit')).not.toContain('submiting');
+    expect(inflectionSet('submit').size).toBe(4);
+  });
+
+  it('does not double other polysyllabic CVC words', () => {
+    has('visit', 'visits', 'visited', 'visiting');
+    has('offer', 'offers', 'offered', 'offering');
+    has('open', 'opens', 'opened', 'opening');
+    expect(inflectionSet('visit')).not.toContain('visitted');
+    expect(inflectionSet('offer')).not.toContain('offerred');
+    expect(inflectionSet('open')).not.toContain('openned');
   });
 
   it('does not double after w/x/y or after two vowels', () => {

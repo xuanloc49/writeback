@@ -43,7 +43,9 @@ describe('businessDayRange', () => {
     expect(businessDate(start, TZ)).toBe('2026-09-13');
     expect(businessDate(new Date(end.getTime() - 1), TZ)).toBe('2026-09-13');
     expect(businessDate(end, TZ)).toBe('2026-09-14');
-    expect(businessDayRange(FIRST_SECOND_OF_SEP_14, TZ).start.toISOString()).toBe('2026-09-13T17:00:00.000Z');
+    expect(businessDayRange(FIRST_SECOND_OF_SEP_14, TZ).start.toISOString()).toBe(
+      '2026-09-13T17:00:00.000Z',
+    );
   });
 
   it('handles a DST transition day in a zone that observes it', () => {

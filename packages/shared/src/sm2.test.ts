@@ -49,7 +49,13 @@ describe('nextSm2 passing answers', () => {
   });
 
   it('becomes mastered once the interval reaches 21 days', () => {
-    const card: Sm2CardState = { status: 'review', ef: 2.5, repetitions: 3, intervalDays: 8, nextReviewAt: NOW };
+    const card: Sm2CardState = {
+      status: 'review',
+      ef: 2.5,
+      repetitions: 3,
+      intervalDays: 8,
+      nextReviewAt: NOW,
+    };
     const below = nextSm2(card, 4, NOW); // round(8 × 2.5) = 20 < 21
     expect(below).toMatchObject({ status: 'review', intervalDays: 20 });
     const exactly21 = nextSm2({ ...card, intervalDays: 7, ef: 3 }, 4, NOW);
@@ -63,22 +69,46 @@ describe('nextSm2 lapses (q=1)', () => {
   it('on a new or learning card: +10 minutes, learning, repetitions 0, interval unchanged', () => {
     const fromNew = nextSm2(newSm2Card(NOW), 1, NOW);
     expect(fromNew).toMatchObject({ status: 'learning', repetitions: 0, intervalDays: 0, ef: 2.5 });
-    expect(fromNew.nextReviewAt).toEqual(new Date(NOW.getTime() + SRS.LAPSE_RELEARN_MINUTES * MINUTE_MS));
+    expect(fromNew.nextReviewAt).toEqual(
+      new Date(NOW.getTime() + SRS.LAPSE_RELEARN_MINUTES * MINUTE_MS),
+    );
 
-    const learning: Sm2CardState = { status: 'learning', ef: 2.2, repetitions: 0, intervalDays: 1, nextReviewAt: NOW };
+    const learning: Sm2CardState = {
+      status: 'learning',
+      ef: 2.2,
+      repetitions: 0,
+      intervalDays: 1,
+      nextReviewAt: NOW,
+    };
     const again = nextSm2(learning, 1, NOW);
     expect(again).toMatchObject({ status: 'learning', repetitions: 0, intervalDays: 1, ef: 2.2 });
     expect(again.nextReviewAt).toEqual(new Date(NOW.getTime() + 10 * MINUTE_MS));
   });
 
   it('on a review or mastered card: interval 1 day, learning, repetitions 0, ef only clamped', () => {
-    const review: Sm2CardState = { status: 'review', ef: 2.5, repetitions: 4, intervalDays: 15, nextReviewAt: NOW };
+    const review: Sm2CardState = {
+      status: 'review',
+      ef: 2.5,
+      repetitions: 4,
+      intervalDays: 15,
+      nextReviewAt: NOW,
+    };
     const lapsed = nextSm2(review, 1, NOW);
     expect(lapsed).toMatchObject({ status: 'learning', repetitions: 0, intervalDays: 1, ef: 2.5 });
     expect(lapsed.nextReviewAt).toEqual(after(1));
 
-    const mastered: Sm2CardState = { status: 'mastered', ef: 1.1, repetitions: 6, intervalDays: 40, nextReviewAt: NOW };
-    expect(nextSm2(mastered, 1, NOW)).toMatchObject({ status: 'learning', intervalDays: 1, ef: SRS.MIN_EF });
+    const mastered: Sm2CardState = {
+      status: 'mastered',
+      ef: 1.1,
+      repetitions: 6,
+      intervalDays: 40,
+      nextReviewAt: NOW,
+    };
+    expect(nextSm2(mastered, 1, NOW)).toMatchObject({
+      status: 'learning',
+      intervalDays: 1,
+      ef: SRS.MIN_EF,
+    });
   });
 
   it('does not mutate the input card', () => {

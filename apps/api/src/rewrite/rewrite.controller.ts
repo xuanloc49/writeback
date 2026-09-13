@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { CurrentUser, RequestId } from '../auth/current-user.decorator';
 import { LearningGateGuard } from '../auth/learning-gate.guard';
@@ -25,6 +35,7 @@ export class RewriteController {
   constructor(private readonly rewrite: RewriteService) {}
 
   @Post('start')
+  @HttpCode(HttpStatus.OK)
   @RateLimit('start')
   start(
     @CurrentUser() user: User,
@@ -35,6 +46,7 @@ export class RewriteController {
   }
 
   @Post(':attemptId/submit')
+  @HttpCode(HttpStatus.OK)
   @RateLimit('submit')
   submit(
     @CurrentUser() user: User,

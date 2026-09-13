@@ -1,4 +1,12 @@
-import { Controller, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { LearningGateGuard } from '../auth/learning-gate.guard';
@@ -18,6 +26,7 @@ export class VocabController {
   }
 
   @Post('cards/:cardId/undo-auto-add')
+  @HttpCode(HttpStatus.OK)
   undoAutoAdd(
     @CurrentUser() user: User,
     @Param('cardId', new ParseUUIDPipe({ exceptionFactory: () => appError('NOT_FOUND') }))

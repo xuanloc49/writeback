@@ -1,4 +1,4 @@
-import { ONBOARDING } from '@writeback/shared';
+import { ACCOUNT_DELETE_CONFIRMATION, ONBOARDING } from '@writeback/shared';
 import { z } from 'zod';
 
 export const acceptTosSchema = z
@@ -16,3 +16,9 @@ export const onboardingSchema = z
   })
   .strict();
 export type OnboardingBody = z.infer<typeof onboardingSchema>;
+
+/** PRD §10.9: the user must type the exact confirmation word; anything else is `VALIDATION`. */
+export const deleteAccountSchema = z
+  .object({ confirm: z.literal(ACCOUNT_DELETE_CONFIRMATION) })
+  .strict();
+export type DeleteAccountBody = z.infer<typeof deleteAccountSchema>;

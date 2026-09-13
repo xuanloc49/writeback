@@ -5,6 +5,8 @@ import { REQUEST_ID_HEADER } from './common/request-context';
 
 /** Applies HTTP-level configuration shared by `main.ts` and the test harness. */
 export function configureApp(app: NestExpressApplication, config: AppConfig): void {
+  // Behind the Fly proxy so Auth.js sees `https` / the public host (design §3.1, §3.3).
+  app.set('trust proxy', 1);
   app.setGlobalPrefix('v1');
   app.useBodyParser('json', { limit: CONTENT.IMPORT_MAX_BYTES });
   app.enableCors({

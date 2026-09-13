@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Post, Put, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import type { User } from '@prisma/client';
 import type { MeDto } from '@writeback/shared';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -7,8 +18,10 @@ import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import {
   acceptTosSchema,
+  deleteAccountSchema,
   onboardingSchema,
   type AcceptTosBody,
+  type DeleteAccountBody,
   type OnboardingBody,
 } from './users.dto';
 import { UsersService } from './users.service';
@@ -21,6 +34,15 @@ export class UsersController {
   @Get('me')
   me(@CurrentUser() user: User, @Req() req: AppRequest): Promise<MeDto> {
     return this.users.me(user, req.principal?.impersonatorId ?? null);
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteAccount(
+    @CurrentUser() user: User,
+    @Body(new ZodValidationPipe(deleteAccountSchema)) _body: DeleteAccountBody,
+  ): Promise<void> {
+    return this.users.deleteAccount(user);
   }
 
   @Post('me/tos')

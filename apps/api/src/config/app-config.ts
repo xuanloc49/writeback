@@ -54,6 +54,17 @@ const envSchema = z
         message: 'OPENAI_API_KEY is required outside local/test',
       });
     }
+    // Auth.js (design §6.0): Google credentials may be blank only in local/test.
+    const authKeys = ['AUTH_URL', 'AUTH_SECRET', 'AUTH_GOOGLE_ID', 'AUTH_GOOGLE_SECRET'] as const;
+    for (const key of authKeys) {
+      if (!keyOptional && env[key] === null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: `${key} is required outside local/test`,
+        });
+      }
+    }
   });
 
 type ParsedEnv = z.infer<typeof envSchema>;
@@ -69,6 +80,10 @@ export class AppConfig {
   readonly businessTz: string;
   readonly appOrigin: string;
   readonly cookieDomain: string | null;
+  readonly authUrl: string | null;
+  readonly authSecret: string | null;
+  readonly authGoogleId: string | null;
+  readonly authGoogleSecret: string | null;
   readonly betaAllowlistEnabled: boolean;
   readonly betaAllowlistSeedEmails: string | null;
   readonly tosVersion: string;
@@ -94,6 +109,10 @@ export class AppConfig {
     this.businessTz = env.BUSINESS_TZ;
     this.appOrigin = env.APP_ORIGIN;
     this.cookieDomain = env.COOKIE_DOMAIN;
+    this.authUrl = env.AUTH_URL;
+    this.authSecret = env.AUTH_SECRET;
+    this.authGoogleId = env.AUTH_GOOGLE_ID;
+    this.authGoogleSecret = env.AUTH_GOOGLE_SECRET;
     this.betaAllowlistEnabled = env.BETA_ALLOWLIST_ENABLED;
     this.betaAllowlistSeedEmails = env.BETA_ALLOWLIST_EMAILS;
     this.tosVersion = env.TOS_VERSION;
@@ -114,6 +133,11 @@ export class AppConfig {
   /** True when the real OpenAI provider must be used. */
   get useRealScoringProvider(): boolean {
     return this.openaiApiKey !== null;
+  }
+
+  /** Cookies are `Secure` everywhere except plain-HTTP local/test (design §3.1). */
+  get secureCookies(): boolean {
+    return this.appEnv !== 'local' && this.appEnv !== 'test';
   }
 
   static fromEnv(source: NodeJS.ProcessEnv = process.env): AppConfig {

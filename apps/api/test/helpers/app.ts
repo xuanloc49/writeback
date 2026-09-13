@@ -57,18 +57,32 @@ export interface TestApp {
   close(): Promise<void>;
 }
 
-export async function createTestApp(): Promise<TestApp> {
+export interface CreateTestAppOptions {
+  /** Per-field overrides applied on top of the `.env.test` config (e.g. `betaAllowlistEnabled`). */
+  config?: Partial<AppConfig>;
+}
+
+/** Copies the env-derived config and applies overrides while keeping the class prototype (getters). */
+function buildTestConfig(overrides: Partial<AppConfig>): AppConfig {
+  const base = AppConfig.fromEnv();
+  return Object.assign(Object.create(Object.getPrototypeOf(base) as object), base, overrides);
+}
+
+export async function createTestApp(options: CreateTestAppOptions = {}): Promise<TestApp> {
   const clock = new FixedClock();
   const random = new FixedRandom();
   const scoring = new FakeScoringProvider();
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  const builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
     .overrideProvider(RANDOM)
     .useValue(random)
     .overrideProvider(SCORING_PROVIDER)
-    .useValue(scoring)
-    .compile();
+    .useValue(scoring);
+  if (options.config !== undefined) {
+    builder.overrideProvider(AppConfig).useValue(buildTestConfig(options.config));
+  }
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
   const config = app.get(AppConfig);

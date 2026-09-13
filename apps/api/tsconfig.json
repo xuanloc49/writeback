@@ -10,5 +10,8 @@
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["src", "test"]
+  "include": ["src", "test"],
+  "ts-node": {
+    "transpileOnly": true
+  }
 }

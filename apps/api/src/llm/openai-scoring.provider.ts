@@ -5,6 +5,7 @@ import { LLM, scoringOutputSchema } from '@writeback/shared';
 import OpenAI, { APIConnectionTimeoutError, APIError } from 'openai';
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { AppConfig } from '../config/app-config';
+import { SCORING_TEMPERATURE } from './llm.constants';
 import {
   ScoringProviderError,
   type ScoringInput,
@@ -41,7 +42,7 @@ export class OpenAiScoringProvider implements ScoringProvider {
     try {
       const completion = await this.client.chat.completions.create({
         model: this.config.openaiModel,
-        temperature: 0,
+        temperature: SCORING_TEMPERATURE,
         max_tokens: this.config.openaiMaxOutputTokens,
         response_format: zodResponseFormat(scoringOutputSchema, SCHEMA_NAME),
         messages: [

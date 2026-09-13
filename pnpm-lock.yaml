@@ -96,9 +96,6 @@ importers:
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.20.2)(typescript@5.9.3)
-      tsx:
-        specifier: ^4.19.0
-        version: 4.23.13
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
@@ -6246,6 +6243,7 @@ snapshots:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   type-check@0.4.0:
     dependencies:

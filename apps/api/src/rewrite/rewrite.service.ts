@@ -13,7 +13,7 @@ import {
 } from '@writeback/shared';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { VisibilityService, type PromptWithLemmas } from '../catalog/visibility.service';
-import { appError } from '../common/app-error';
+import { AppError, appError } from '../common/app-error';
 import { CLOCK, type Clock } from '../common/clock';
 import { AppConfig } from '../config/app-config';
 import { CostEstimator } from '../llm/cost-estimator';
@@ -24,6 +24,7 @@ import {
   type ScoringResult,
 } from '../llm/scoring-provider';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
+import { describeQuotaReset, quotaExceededMessage, type QuotaScope } from '../quota/quota-reset';
 import { QuotaService, type QuotaLeft } from '../quota/quota.service';
 import { AutoAddService, type AutoAddResult } from '../vocab/auto-add.service';
 import { PickerService, type PickerFilters } from './picker.service';
@@ -76,7 +77,7 @@ export class RewriteService {
           requestId,
           tx,
         );
-        throw appError('QUOTA_EXCEEDED');
+        throw this.quotaExceeded(now, 'rewrite_new');
       }
       const prompt = await this.picker.pick(user, filters, now);
       const attemptId = randomUUID();
@@ -180,6 +181,15 @@ export class RewriteService {
     };
   }
 
+  /** QUOTA_EXCEEDED with the reset instant derived from BUSINESS_TZ (design §5.2, PRD §8). */
+  private quotaExceeded(now: Date, scope: QuotaScope): AppError {
+    const { resetAt, label } = describeQuotaReset(now, this.config.businessTz);
+    return new AppError('QUOTA_EXCEEDED', quotaExceededMessage(scope, label), {
+      resetAt: resetAt.toISOString(),
+      scope,
+    });
+  }
+
   private async loadFamily(user: User, attemptId: string): Promise<RewriteAttempt[]> {
     const rows = await this.prisma.rewriteAttempt.findMany({
       where: { attemptId, userId: user.id },
@@ -217,7 +227,7 @@ export class RewriteService {
       await this.quota.lockUser(tx, user.id);
       const quota = await this.quota.remaining(tx, user, now);
       if (quota.retryLeft === 0) {
-        throw appError('QUOTA_EXCEEDED', { kind: 'retry' });
+        throw this.quotaExceeded(now, 'retry');
       }
       if (existing !== undefined) {
         return existing;

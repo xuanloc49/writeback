@@ -165,6 +165,12 @@ describe('rewrite flow (integration)', () => {
     const blocked = await start(cookie);
     expect(blocked.status).toBe(429);
     expect(blocked.body.error.code).toBe('QUOTA_EXCEEDED');
+    // Clock is 2026-09-13T10:00Z (17:00 GMT+7); the next business day starts at 17:00Z.
+    const resetAt: string = blocked.body.error.details.resetAt;
+    expect(new Date(resetAt).toISOString()).toBe(resetAt);
+    expect(resetAt).toBe('2026-09-13T17:00:00.000Z');
+    expect(blocked.body.error.details.scope).toBe('rewrite_new');
+    expect(blocked.body.error.message).toContain('00:00');
     expect(await t.prisma.rewriteAttempt.count()).toBe(before);
 
     const admin = await createUser(t.prisma, { role: 'admin' });

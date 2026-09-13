@@ -12,7 +12,9 @@ import { SCORING_PROVIDER, type ScoringProvider } from './scoring-provider';
       provide: SCORING_PROVIDER,
       inject: [AppConfig],
       useFactory: (config: AppConfig): ScoringProvider =>
-        config.useRealScoringProvider ? new OpenAiScoringProvider(config) : new FakeScoringProvider(),
+        config.useRealScoringProvider
+          ? new OpenAiScoringProvider(config)
+          : new FakeScoringProvider(),
     },
   ],
   exports: [SCORING_PROVIDER, CostEstimator],

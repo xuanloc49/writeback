@@ -60,8 +60,7 @@ export class VisibilityService {
     if (!alive) {
       return false;
     }
-    const planAllows =
-      isStaffRole(user.role) || user.plan === 'premium' || lemma.includedInFree;
+    const planAllows = isStaffRole(user.role) || user.plan === 'premium' || lemma.includedInFree;
     return (planAllows || overrides.allow.has(lemma.topicId)) && !overrides.deny.has(lemma.topicId);
   }
 
@@ -93,7 +92,9 @@ export class VisibilityService {
         deletedAt: null,
         status: 'published',
         ...(filters.topicId !== undefined ? { topicId: filters.topicId } : {}),
-        ...(filters.lemmaId !== undefined ? { lemmaLinks: { some: { lemmaId: filters.lemmaId } } } : {}),
+        ...(filters.lemmaId !== undefined
+          ? { lemmaLinks: { some: { lemmaId: filters.lemmaId } } }
+          : {}),
       },
       include: {
         lemmaLinks: { include: { lemma: true }, orderBy: { sortOrder: 'asc' } },

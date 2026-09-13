@@ -21,6 +21,7 @@ import {
   SCORING_PROVIDER,
   ScoringProviderError,
   type ScoringProvider,
+  type ScoringResult,
 } from '../llm/scoring-provider';
 import { PrismaService, type Tx } from '../prisma/prisma.service';
 import { QuotaService, type QuotaLeft } from '../quota/quota.service';
@@ -40,6 +41,9 @@ const FIRST_REVISION = 1;
 const SECOND_REVISION = REWRITE.MAX_REVISION;
 const NO_CARDS: AutoAddResult = { cardsAdded: [], cardsDeferredCap20: [] };
 
+/** Provider result whose `raw` payload has passed schema + one-to-one validation. */
+type ValidatedScoring = Omit<ScoringResult, 'raw'> & { output: ScoringOutput };
+
 @Injectable()
 export class RewriteService {
   constructor(
@@ -55,13 +59,23 @@ export class RewriteService {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  async start(user: User, filters: PickerFilters, requestId: string): Promise<StartRewriteResponse> {
+  async start(
+    user: User,
+    filters: PickerFilters,
+    requestId: string,
+  ): Promise<StartRewriteResponse> {
     const now = this.clock.now();
     return this.prisma.$transaction(async (tx) => {
       await this.quota.lockUser(tx, user.id);
       const quota = await this.quota.remaining(tx, user, now);
       if (quota.rewriteNewLeft === 0) {
-        await this.analytics.track('rewrite_quota_blocked', user.id, { stage: 'start' }, requestId, tx);
+        await this.analytics.track(
+          'rewrite_quota_blocked',
+          user.id,
+          { stage: 'start' },
+          requestId,
+          tx,
+        );
         throw appError('QUOTA_EXCEEDED');
       }
       const prompt = await this.picker.pick(user, filters, now);
@@ -136,7 +150,7 @@ export class RewriteService {
       return this.buildSubmitResponse(user, claimed, rev1, NO_CARDS, now);
     }
 
-    const output = await this.callProvider(user, claimed, requestId);
+    const output = await this.callProvider(claimed, requestId);
     return this.persistScored(user, claimed, rev1, output, requestId);
   }
 
@@ -268,16 +282,19 @@ export class RewriteService {
   }
 
   private async callProvider(
-    user: User,
     attempt: RewriteAttempt,
     requestId: string,
-  ): Promise<{ output: ScoringOutput; model: string; inputTokens: number; outputTokens: number; latencyMs: number }> {
+  ): Promise<ValidatedScoring> {
     const targets = attempt.targetsSnapshot as unknown as TargetSnapshot[];
-    let result;
+    let result: ScoringResult;
     try {
       result = await this.scoring.score({
         textVi: attempt.promptTextViSnapshot,
-        requiredWords: targets.map((t) => ({ headword: t.headword, pos: t.pos, senseVi: t.senseVi })),
+        requiredWords: targets.map((t) => ({
+          headword: t.headword,
+          pos: t.pos,
+          senseVi: t.senseVi,
+        })),
         sampleEn: attempt.sampleEnSnapshot,
         userEn: attempt.userEn ?? '',
       });
@@ -291,12 +308,21 @@ export class RewriteService {
       await this.markFailed(attempt.id, 'invalid_schema', requestId);
       throw appError('LLM_INVALID_SCHEMA', { reason: 'schema' });
     }
-    const oneToOne = validateUsedWordsOneToOne(parsed.data, targets.map((t) => t.headword));
+    const oneToOne = validateUsedWordsOneToOne(
+      parsed.data,
+      targets.map((t) => t.headword),
+    );
     if (!oneToOne.ok) {
       await this.markFailed(attempt.id, 'invalid_schema', requestId);
       throw appError('LLM_INVALID_SCHEMA', { reason: oneToOne.reason });
     }
-    return { output: parsed.data, ...result };
+    return {
+      output: parsed.data,
+      model: result.model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      latencyMs: result.latencyMs,
+    };
   }
 
   private async markFailed(rowId: string, failReason: string, requestId: string): Promise<void> {
@@ -310,7 +336,7 @@ export class RewriteService {
     user: User,
     attempt: RewriteAttempt,
     rev1: RewriteAttempt,
-    scored: { output: ScoringOutput; model: string; inputTokens: number; outputTokens: number; latencyMs: number },
+    scored: ValidatedScoring,
     requestId: string,
   ): Promise<SubmitRewriteResponse> {
     const now = this.clock.now();
@@ -350,8 +376,9 @@ export class RewriteService {
           overall_score: output.overall_score,
           idea_match: output.idea_match.status,
           user_en_length: (updated.userEn ?? '').length,
-          words_not_used_or_unnatural: output.used_required_words.filter((w) => !w.used || !w.natural)
-            .length,
+          words_not_used_or_unnatural: output.used_required_words.filter(
+            (w) => !w.used || !w.natural,
+          ).length,
         },
         requestId,
         tx,
@@ -393,7 +420,8 @@ export class RewriteService {
       modelRewriteEn: output.model_rewrite_en,
       showModelRewriteToggle: false,
       revisionUntil: revisionUntil?.toISOString() ?? null,
-      revisionAvailable: isRev1 && revisionUntil !== null && now <= revisionUntil && quota.retryLeft > 0,
+      revisionAvailable:
+        isRev1 && revisionUntil !== null && now <= revisionUntil && quota.retryLeft > 0,
       cardsAdded: cards.cardsAdded,
       cardsDeferredCap20: cards.cardsDeferredCap20,
       quota,

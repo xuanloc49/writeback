@@ -25,7 +25,10 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const name = this.reflector.get<RateLimitName | undefined>(RATE_LIMIT_KEY, context.getHandler());
+    const name = this.reflector.get<RateLimitName | undefined>(
+      RATE_LIMIT_KEY,
+      context.getHandler(),
+    );
     if (name === undefined) {
       return true;
     }
@@ -39,7 +42,8 @@ export class RateLimitGuard implements CanActivate {
       `rl:${name}:${userId}:${windowStart}`,
       WINDOW_SECONDS,
     );
-    const limit = name === 'start' ? this.config.rateLimitStartPerMin : this.config.rateLimitSubmitPerMin;
+    const limit =
+      name === 'start' ? this.config.rateLimitStartPerMin : this.config.rateLimitSubmitPerMin;
     if (count > limit) {
       throw appError('RATE_LIMITED');
     }

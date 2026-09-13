@@ -50,7 +50,10 @@ export class AutoAddService {
         where: { id: target.lemmaId },
         include: { topic: { select: { status: true, deletedAt: true } } },
       });
-      if (lemma === null || !this.visibility.isLemmaVisibleWith(user, lemma, lemma.topic, overrides)) {
+      if (
+        lemma === null ||
+        !this.visibility.isLemmaVisibleWith(user, lemma, lemma.topic, overrides)
+      ) {
         continue;
       }
       const existing = await tx.srsCard.findUnique({

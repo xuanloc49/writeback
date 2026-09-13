@@ -69,7 +69,9 @@ export class PickerService {
     pool: PromptWithLemmas[],
     now: Date,
   ): Promise<PickerSignals> {
-    const lemmaIds = [...new Set(pool.flatMap((prompt) => prompt.lemmaLinks.map((l) => l.lemmaId)))];
+    const lemmaIds = [
+      ...new Set(pool.flatMap((prompt) => prompt.lemmaLinks.map((l) => l.lemmaId))),
+    ];
     const misuseSince = new Date(now.getTime() - PICKER.MISUSE_LOOKBACK_DAYS * MS_PER_DAY);
     const [cards, onboarding, scored, recentAttempts] = await Promise.all([
       this.prisma.srsCard.findMany({
@@ -94,7 +96,8 @@ export class PickerService {
       cards
         .filter(
           (card) =>
-            card.status === 'learning' || isDueToday(card.nextReviewAt, now, this.config.businessTz),
+            card.status === 'learning' ||
+            isDueToday(card.nextReviewAt, now, this.config.businessTz),
         )
         .map((card) => card.lemmaId),
     );
@@ -119,7 +122,11 @@ function collectMisusedLemmaIds(
   for (const attempt of attempts) {
     const feedback = attempt.feedback as Pick<ScoringOutput, 'used_required_words'> | null;
     const targets = attempt.targetsSnapshot as TargetSnapshot[] | null;
-    if (feedback === null || !Array.isArray(feedback.used_required_words) || !Array.isArray(targets)) {
+    if (
+      feedback === null ||
+      !Array.isArray(feedback.used_required_words) ||
+      !Array.isArray(targets)
+    ) {
       continue;
     }
     const byHeadword = new Map(targets.map((t) => [t.headword.toLowerCase(), t.lemmaId]));
@@ -175,7 +182,10 @@ export function scorePrompt(prompt: PromptWithLemmas, signals: PickerSignals): n
 }
 
 /** Ranks by score desc with a stable id tiebreak; returns the top N. */
-export function rankCandidates(pool: PromptWithLemmas[], signals: PickerSignals): PromptWithLemmas[] {
+export function rankCandidates(
+  pool: PromptWithLemmas[],
+  signals: PickerSignals,
+): PromptWithLemmas[] {
   return pool
     .map((prompt) => ({ prompt, score: scorePrompt(prompt, signals) }))
     .sort((a, b) => b.score - a.score || a.prompt.id.localeCompare(b.prompt.id))

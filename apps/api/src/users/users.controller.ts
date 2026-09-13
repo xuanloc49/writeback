@@ -5,7 +5,12 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { SessionGuard } from '../auth/session.guard';
 import type { AppRequest } from '../common/request-context';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import { acceptTosSchema, onboardingSchema, type AcceptTosBody, type OnboardingBody } from './users.dto';
+import {
+  acceptTosSchema,
+  onboardingSchema,
+  type AcceptTosBody,
+  type OnboardingBody,
+} from './users.dto';
 import { UsersService } from './users.service';
 
 @Controller()

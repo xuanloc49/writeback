@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, type User } from '@prisma/client';
-import { businessDayRange } from '@writeback/shared';
+import { businessDayRange, REWRITE } from '@writeback/shared';
 import { PlanLimitsService } from '../catalog/plan-limits.service';
 import { AppConfig } from '../config/app-config';
 import type { Tx } from '../prisma/prisma.service';
@@ -11,7 +11,7 @@ export interface QuotaLeft {
 }
 
 const REVISION_NEW = 1;
-const REVISION_RETRY = 2;
+const REVISION_RETRY = REWRITE.MAX_REVISION;
 
 /** Design §9.1: remaining = max(0, limit − charged rows today + grants today). */
 @Injectable()
@@ -43,7 +43,11 @@ export class QuotaService {
       }),
     ]);
     return {
-      rewriteNewLeft: computeLeft(limits.rewriteNewPerDay, newUsed, grants._sum.extraRewriteNew ?? 0),
+      rewriteNewLeft: computeLeft(
+        limits.rewriteNewPerDay,
+        newUsed,
+        grants._sum.extraRewriteNew ?? 0,
+      ),
       retryLeft: computeLeft(limits.retryPerDay, retryUsed, grants._sum.extraRetry ?? 0),
     };
   }

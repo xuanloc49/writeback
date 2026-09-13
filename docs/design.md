@@ -248,6 +248,7 @@ Mọi lỗi JSON (không kể Auth.js HTML):
 | `COPY_BLOCKED` | 422 | Khớp sample / model rewrite sau normalize; **không** gọi LLM, không trừ |
 | `UNPUBLISHED` | 409 | Lemma/prompt không còn published lúc submit |
 | `SCORING_IN_PROGRESS` | 409 | Cùng attempt+revision đang gọi LLM |
+| `CONFLICT` | 409 | Tạo tay trùng `headword`/`slug`/`external_key` còn sống; impersonate khi actor đã có phiên mở |
 | `QUOTA_EXCEEDED` | 429 | Hết lượt mới / retry ngày |
 | `RATE_LIMITED` | 429 | Vượt `RATE_LIMIT_*`; không LLM, không trừ |
 | `LLM_TIMEOUT` | 502 | > 20s hoặc 5xx OpenAI |
